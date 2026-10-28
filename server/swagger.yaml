@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: FitNexa AI API
+  version: 2.0.0
+  description: >
+    MongoDB Atlas-backed fitness and gym management API with separate member and administrator portals.
+    Public registration always creates a member. Administrators are provisioned through the trusted
+    terminal setup command and cannot register through the public API.
+servers:
+  - url: http://localhost:3001/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      summary: Register a member account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                role:
+                  type: string
+                  description: Ignored; public registrations always receive the member role.
+      responses:
+        '201':
+          description: Member created and signed in
+        '409':
+          description: Email is already registered
+  /auth/login:
+    post:
+      summary: Sign in through the selected portal
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, portal]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                portal:
+                  type: string
+                  enum: [member, admin]
+      responses:
+        '200':
+          description: Authenticated user and bearer token
+        '401':
+          description: Invalid credentials for the selected portal
+  /auth/me:
+    get:
+      summary: Get the authenticated account and fitness profile
+      responses:
+        '200':
+          description: Current account
+  /gym/admin/report:
+    get:
+      summary: Get member, attendance, membership, workout, and payment analytics
+      description: Administrator-only report computed from current MongoDB Atlas records.
+      responses:
+        '200':
+          description: Current gym analytics
+        '403':
+          description: Administrator access required
+  /gym/admin/members:
+    get:
+      summary: List member accounts and activity
+      responses:
+        '200':
+          description: Member records
+    post:
+      summary: Create a member account
+      description: Administrator-only; the created account always has the member role.
+      responses:
+        '201':
+          description: Member created
+        '403':
+          description: Administrator access required
+  /exercises:
+    get:
+      summary: Search the shared exercise library
+      responses:
+        '200':
+          description: Exercise records
+    post:
+      summary: Add an exercise to the library
+      description: Administrator-only.
+      responses:
+        '201':
+          description: Exercise created
+        '403':
+          description: Administrator access required
+  /workouts/plans:
+    get:
+      summary: List the current member's workout plans
+      responses:
+        '200':
+          description: Plans owned by the authenticated member
+    post:
+      summary: Create a workout plan for the current member
+      responses:
+        '201':
+          description: Plan created
+        '403':
+          description: Member portal access required
+  /nutrition/logs:
+    get:
+      summary: List the current member's food logs
+      responses:
+        '200':
+          description: Logs owned by the authenticated member
+    post:
+      summary: Create a food log for the current member
+      responses:
+        '201':
+          description: Food log created
+  /reminders:
+    get:
+      summary: List member reminders and gym announcements
+      responses:
+        '200':
+          description: Reminder records for the authenticated member
+    post:
+      summary: Create a personal reminder
+      responses:
+        '201':
+          description: Reminder created
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
